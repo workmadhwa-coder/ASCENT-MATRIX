@@ -1,0 +1,7 @@
+{
+  "name": "Ascent Matrix 2026",
+  "description": "Official portal for Ascent Matrix 2026 Tech Summit featuring registration, sponsorship, and volunteer management.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
