@@ -7,7 +7,7 @@ import { RegistrationData } from '../types';
 const { useLocation, useNavigate } = ReactRouterDOM as any;
 
 // Use VITE_ prefix for Vite projects
-const BACKEND_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3001';
+const BACKEND_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3000';
 
 const Confirm = () => {
   const location = useLocation();
