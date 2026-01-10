@@ -10,40 +10,25 @@ import './config/firebase.js';
 import paymentRoutes from './routes/payment.routes.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 // ===============================
-// ✅ CORS CONFIG (PRODUCTION SAFE)
+// ✅ CORS (FINAL FIX)
 // ===============================
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'https://ascent-matrix-ok7p.onrender.com'
-];
+const corsOptions = {
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://ascent-matrix-ok7p.onrender.com'
+  ],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: false // ✅ IMPORTANT: must be false
+};
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow non-browser requests (Postman, server-to-server)
-      if (!origin) return callback(null, true);
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // ✅ preflight support
 
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-  })
-);
-
-// ✅ VERY IMPORTANT: Handle preflight requests
-app.options('*', cors());
-
-// ===============================
-// Middleware
 // ===============================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -59,9 +44,7 @@ app.use((req, _res, next) => {
 // ===============================
 app.use('/api', paymentRoutes);
 
-// ===============================
-// Health Check
-// ===============================
+// Health
 app.get('/', (_req, res) => {
   res.json({
     status: 'online',
@@ -70,8 +53,6 @@ app.get('/', (_req, res) => {
   });
 });
 
-// ===============================
-// Start Server
 // ===============================
 app.listen(PORT, () => {
   console.log('--------------------------------------------------');
