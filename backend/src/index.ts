@@ -7,28 +7,32 @@ import cors from 'cors';
 // 🔥 Initialize Firebase ONCE
 import './config/firebase.js';
 
+// Routes
 import paymentRoutes from './routes/payment.routes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ===============================
-// ✅ CORS (FINAL FIX)
+// ✅ CORS CONFIG (STABLE & SAFE)
 // ===============================
-const corsOptions = {
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'https://ascent-matrix-ok7p.onrender.com'
-  ],
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: false // ✅ IMPORTANT: must be false
-};
+app.use(
+  cors({
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://ascent-matrix-ok7p.onrender.com'
+    ],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  })
+);
 
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // ✅ preflight support
+// ✅ Handle preflight
+app.options('*', cors());
 
+// ===============================
+// Middleware
 // ===============================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -44,7 +48,9 @@ app.use((req, _res, next) => {
 // ===============================
 app.use('/api', paymentRoutes);
 
-// Health
+// ===============================
+// Health Check
+// ===============================
 app.get('/', (_req, res) => {
   res.json({
     status: 'online',
@@ -53,6 +59,8 @@ app.get('/', (_req, res) => {
   });
 });
 
+// ===============================
+// Start Server
 // ===============================
 app.listen(PORT, () => {
   console.log('--------------------------------------------------');
