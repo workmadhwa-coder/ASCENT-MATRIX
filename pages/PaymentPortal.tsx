@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { getRegistrationById } from '../services/storage';
@@ -8,6 +7,19 @@ import { RegistrationData } from '../types';
 const { useLocation, useNavigate } = ReactRouterDOM as any;
 
 declare const Razorpay: any;
+
+/**
+ * Accessing environment variables:
+ * For Vite: import.meta.env.VITE_API_BASE_URL
+ * For Create React App: process.env.REACT_APP_API_BASE_URL
+ */
+const getBaseUrl = () => {
+  // @ts-ignore - Handles environments where import.meta.env isn't typed yet
+  const env = (import.meta as any).env;
+  return env?.VITE_API_BASE_URL || 'http://localhost:3001';
+};
+
+const API_BASE_URL = getBaseUrl();
 
 const PaymentPortal = () => {
   const location = useLocation();
@@ -39,7 +51,8 @@ const PaymentPortal = () => {
     setIsInitializing(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/payment/create-order', {
+      // Using the dynamic API_BASE_URL from .env
+      const response = await fetch(`${API_BASE_URL}/api/payment/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -91,7 +104,7 @@ const PaymentPortal = () => {
       rzp.open();
     } catch (err: any) {
       console.error("Payment error:", err);
-      alert("Payment initialization failed. Ensure backend is running on port 3000.");
+      alert(`Connection failed. Make sure backend is running at ${API_BASE_URL}`);
     } finally {
       setIsInitializing(false);
     }
