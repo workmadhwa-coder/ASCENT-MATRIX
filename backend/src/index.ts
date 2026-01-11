@@ -3,14 +3,20 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
+
+// 🔥 Initialize Firebase ONCE
 import './config/firebase.js';
+
 import paymentRoutes from './routes/payment.routes.js';
 
 const app = express();
 const PORT: number = Number(process.env.PORT) || 3000;
 
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://ascent-matrix-ok7p.onrender.com'],
+  origin: [
+    'http://localhost:5173',
+    'https://ascent-matrix-ok7p.onrender.com'
+  ],
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
@@ -18,15 +24,16 @@ app.use(cors({
 
 app.use(express.json());
 
-// Request logging for Render
+// 🔍 Request logging (important for Render)
 app.use((req, _res, next) => {
-  console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
 
-// Mount routes at /api/payment
+// Routes
 app.use('/api/payment', paymentRoutes);
 
+// Health check
 app.get('/', (_req, res) => {
   res.json({ status: 'online', port: PORT });
 });
