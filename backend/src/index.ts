@@ -19,13 +19,13 @@ app.use(cors({
 app.options('*', cors());
 app.use(express.json());
 
-// Log every request to help debugging
+// Log every request for debugging
 app.use((req, _res, next) => {
   console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
   next();
 });
 
-// Mount the routes
+// Mount the routes at /api/payment
 app.use('/api/payment', paymentRoutes);
 
 app.get('/', (_req, res) => {
