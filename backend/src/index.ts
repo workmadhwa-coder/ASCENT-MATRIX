@@ -4,13 +4,13 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 
-// 🔥 Initialize Firebase ONCE
-import './config/firebase.js';
+import './config/firebase';
 
-import paymentRoutes from './routes/payment.routes.js';
+// ✅ IMPORTANT: no `.js` extension in TS
+import paymentRoutes from './routes/payment.routes';
 
 const app = express();
-const PORT: number = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(cors({
   origin: [
@@ -24,18 +24,18 @@ app.use(cors({
 
 app.use(express.json());
 
-// 🔍 Request logging (important for Render)
+// 🔍 LOG EVERY REQUEST
 app.use((req, _res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log(`[${req.method}] ${req.url}`);
   next();
 });
 
-// Routes
+// ✅ ROUTES (THIS IS THE KEY LINE)
 app.use('/api/payment', paymentRoutes);
 
 // Health check
 app.get('/', (_req, res) => {
-  res.json({ status: 'online', port: PORT });
+  res.json({ status: 'API running' });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
