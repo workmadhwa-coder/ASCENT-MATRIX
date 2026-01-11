@@ -1,47 +1,45 @@
-import express from 'express';
-import crypto from 'crypto';
 import { razorpay } from '../utils/razorpay.js';
+import crypto from 'crypto';
 import { db } from '../config/firebase.js';
-
-const router = express.Router();
 
 const RZP_KEY_ID = process.env.RAZORPAY_KEY_ID;
 const RZP_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 
-/**
- * =======================
- * CREATE ORDER
- * =======================
- */
-router.post('/create-order', async (req: any, res: any) => {
+// =======================
+// CREATE ORDER
+// =======================
+export const createOrder = async (req: any, res: any) => {
   try {
     const { amount, registrationId } = req.body;
 
     if (!amount || typeof amount !== 'number') {
-      return res.status(400).json({ error: 'Amount must be a number' });
+      return res.status(400).json({
+        error: 'Amount is required and must be a number'
+      });
     }
 
     if (!registrationId) {
-      return res.status(400).json({ error: 'registrationId is required' });
+      return res.status(400).json({
+        error: 'registrationId is required'
+      });
     }
 
-    if (!RZP_KEY_ID || !RZP_KEY_SECRET) {
-      throw new Error('Razorpay keys missing');
-    }
-
-    const order = await razorpay.orders.create({
-      amount: Math.round(amount * 100), // paise
+    const options = {
+      amount: Math.round(amount * 100),
       currency: 'INR',
-      receipt: registrationId
-    });
+      receipt: registrationId,
+    };
 
+    const order = await razorpay.orders.create(options);
+
+    // ✅ Ensure registration doc exists
     await db.collection('registrations').doc(registrationId).set(
       {
         paymentStatus: 'CREATED',
         orderId: order.id,
         amount,
         currency: 'INR',
-        createdAt: new Date()
+        createdAt: new Date(),
       },
       { merge: true }
     );
@@ -50,38 +48,38 @@ router.post('/create-order', async (req: any, res: any) => {
       id: order.id,
       amount: order.amount,
       currency: order.currency,
-      key_id: RZP_KEY_ID
+      key_id: RZP_KEY_ID,
     });
 
   } catch (error: any) {
-    console.error('[CREATE ORDER ERROR]', error);
+    console.error('[ORDER] Error:', error);
     return res.status(500).json({
       message: 'Order creation failed',
-      error: error.message
+      error: error.message,
     });
   }
-});
+};
 
-/**
- * =======================
- * VERIFY PAYMENT
- * =======================
- */
-router.post('/verify', async (req: any, res: any) => {
+// =======================
+// VERIFY PAYMENT
+// =======================
+export const verifyPayment = async (req: any, res: any) => {
+  const {
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature,
+    registrationId,
+  } = req.body;
+
   try {
-    const {
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
-      registrationId
-    } = req.body;
-
     if (!registrationId) {
-      return res.status(400).json({ error: 'registrationId is required' });
+      return res.status(400).json({
+        error: 'registrationId is required',
+      });
     }
 
     if (!RZP_KEY_SECRET) {
-      throw new Error('Razorpay secret missing');
+      throw new Error('Razorpay Secret Key is missing');
     }
 
     const body = `${razorpay_order_id}|${razorpay_payment_id}`;
@@ -93,16 +91,28 @@ router.post('/verify', async (req: any, res: any) => {
     if (expectedSignature !== razorpay_signature) {
       return res.status(400).json({
         status: 'failure',
-        message: 'Invalid signature'
+        message: 'Invalid signature',
       });
     }
 
-    await db.collection('registrations').doc(registrationId).set(
+    const ref = db.collection('registrations').doc(registrationId);
+    const snap = await ref.get();
+
+    // 🔁 Idempotency protection
+    if (snap.exists && snap.data()?.paymentStatus === 'PAID') {
+      return res.status(200).json({
+        status: 'success',
+        message: 'Payment already verified',
+      });
+    }
+
+    // ✅ Create OR update safely
+    await ref.set(
       {
         paymentStatus: 'PAID',
         paymentId: razorpay_payment_id,
         orderId: razorpay_order_id,
-        paidAt: new Date()
+        paidAt: new Date(),
       },
       { merge: true }
     );
@@ -110,12 +120,10 @@ router.post('/verify', async (req: any, res: any) => {
     return res.status(200).json({ status: 'success' });
 
   } catch (error: any) {
-    console.error('[VERIFY PAYMENT ERROR]', error);
+    console.error('Verification error:', error);
     return res.status(500).json({
       error: 'Verification failed',
-      message: error.message
+      message: error.message,
     });
   }
-});
-
-export default router;
+};
