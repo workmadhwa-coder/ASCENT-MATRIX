@@ -4,7 +4,7 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 
-// 🔥 Initialize Firebase ONCE
+// 🔥 Initialize Firebase
 import './config/firebase.js';
 
 // Routes
@@ -14,66 +14,45 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ===============================
-// ✅ CORS CONFIG (STABLE & SAFE)
+// ✅ UPDATED CORS CONFIG
 // ===============================
-app.use(
-  cors({
-    origin: [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'https://ascent-matrix-ok7p.onrender.com'
-    ],
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-  })
-);
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://ascent-matrix-ok7p.onrender.com' // Ensure this is your FRONTEND URL
+];
 
-// ✅ Handle preflight
-app.options('*', cors());
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 
-// ===============================
-// Middleware
-// ===============================
+app.options('*', cors()); // Enable pre-flight for all routes
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Logger
+// Health Check & Logger
 app.use((req, _res, next) => {
   console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
   next();
 });
 
-// ===============================
-// Routes
-// ===============================
-app.use('/api', paymentRoutes);
+app.use('/api/payment', paymentRoutes); // Simplified route mounting
 
-// ===============================
-// Health Check
-// ===============================
 app.get('/', (_req, res) => {
-  res.json({
-    status: 'online',
-    message: 'Ascent Matrix Secure API is active',
-    port: PORT
-  });
+  res.json({ status: 'online', service: 'Ascent Matrix API' });
 });
 
-// ===============================
-// Start Server
-// ===============================
-app.listen(PORT, () => {
-  console.log('--------------------------------------------------');
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 API running on port ${PORT}`);
-  console.log(
-    `🔥 Firebase Project: ${
-      JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT!).project_id
-    }`
-  );
-  console.log(
-    `🔑 Razorpay Mode: ${
-      process.env.RAZORPAY_KEY_ID?.startsWith('rzp_test') ? 'Test' : 'Live'
-    }`
-  );
-  console.log('--------------------------------------------------');
 });
