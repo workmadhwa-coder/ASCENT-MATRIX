@@ -10,7 +10,6 @@ const RZP_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 
 // =======================
 // CREATE ORDER
-// Path: POST /api/payment/create-order
 // =======================
 router.post('/create-order', async (req: any, res: any) => {
   try {
@@ -66,7 +65,6 @@ router.post('/create-order', async (req: any, res: any) => {
 
 // =======================
 // VERIFY PAYMENT
-// Path: POST /api/payment/verify
 // =======================
 router.post('/verify', async (req: any, res: any) => {
   try {
