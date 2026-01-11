@@ -1,6 +1,6 @@
 import express from 'express';
-import { razorpay } from '../utils/razorpay.js';
 import crypto from 'crypto';
+import { razorpay } from '../utils/razorpay.js';
 import { db } from '../config/firebase.js';
 
 const router = express.Router();
@@ -8,15 +8,17 @@ const router = express.Router();
 const RZP_KEY_ID = process.env.RAZORPAY_KEY_ID;
 const RZP_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 
-// =======================
-// CREATE ORDER
-// =======================
+/**
+ * =======================
+ * CREATE ORDER
+ * =======================
+ */
 router.post('/create-order', async (req: any, res: any) => {
   try {
     const { amount, registrationId } = req.body;
 
     if (!amount || typeof amount !== 'number') {
-      return res.status(400).json({ error: 'Amount is required and must be a number' });
+      return res.status(400).json({ error: 'Amount must be a number' });
     }
 
     if (!registrationId) {
@@ -24,18 +26,15 @@ router.post('/create-order', async (req: any, res: any) => {
     }
 
     if (!RZP_KEY_ID || !RZP_KEY_SECRET) {
-      throw new Error('Razorpay keys are missing in backend environment');
+      throw new Error('Razorpay keys missing');
     }
 
-    const options = {
-      amount: Math.round(amount * 100), // convert to paise
+    const order = await razorpay.orders.create({
+      amount: Math.round(amount * 100), // paise
       currency: 'INR',
       receipt: registrationId
-    };
+    });
 
-    const order = await razorpay.orders.create(options);
-
-    // Save order info in Firestore
     await db.collection('registrations').doc(registrationId).set(
       {
         paymentStatus: 'CREATED',
@@ -63,9 +62,11 @@ router.post('/create-order', async (req: any, res: any) => {
   }
 });
 
-// =======================
-// VERIFY PAYMENT
-// =======================
+/**
+ * =======================
+ * VERIFY PAYMENT
+ * =======================
+ */
 router.post('/verify', async (req: any, res: any) => {
   try {
     const {
@@ -80,7 +81,7 @@ router.post('/verify', async (req: any, res: any) => {
     }
 
     if (!RZP_KEY_SECRET) {
-      throw new Error('Razorpay secret key missing');
+      throw new Error('Razorpay secret missing');
     }
 
     const body = `${razorpay_order_id}|${razorpay_payment_id}`;
@@ -96,8 +97,7 @@ router.post('/verify', async (req: any, res: any) => {
       });
     }
 
-    const ref = db.collection('registrations').doc(registrationId);
-    await ref.set(
+    await db.collection('registrations').doc(registrationId).set(
       {
         paymentStatus: 'PAID',
         paymentId: razorpay_payment_id,
