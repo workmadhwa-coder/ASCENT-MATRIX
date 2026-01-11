@@ -1,35 +1,35 @@
+import express from 'express';
 import { razorpay } from '../utils/razorpay.js';
 import crypto from 'crypto';
 import { db } from '../config/firebase.js';
+
+const router = express.Router();
 
 const RZP_KEY_ID = process.env.RAZORPAY_KEY_ID;
 const RZP_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 
 // =======================
 // CREATE ORDER
+// Path: POST /api/payment/create-order
 // =======================
-export const createOrder = async (req: any, res: any) => {
+router.post('/create-order', async (req: any, res: any) => {
   try {
     const { amount, registrationId } = req.body;
 
     if (!amount || typeof amount !== 'number') {
-      return res.status(400).json({
-        error: 'Amount is required and must be a number'
-      });
+      return res.status(400).json({ error: 'Amount is required and must be a number' });
     }
 
     if (!registrationId) {
-      return res.status(400).json({
-        error: 'registrationId is required'
-      });
+      return res.status(400).json({ error: 'registrationId is required' });
     }
 
     if (!RZP_KEY_ID || !RZP_KEY_SECRET) {
-      throw new Error('Razorpay keys are missing');
+      throw new Error('Razorpay keys are missing in backend environment');
     }
 
     const options = {
-      amount: Math.round(amount * 100), // paise
+      amount: Math.round(amount * 100), // convert to paise
       currency: 'INR',
       receipt: registrationId
     };
@@ -62,12 +62,13 @@ export const createOrder = async (req: any, res: any) => {
       error: error.message
     });
   }
-};
+});
 
 // =======================
 // VERIFY PAYMENT
+// Path: POST /api/payment/verify
 // =======================
-export const verifyPayment = async (req: any, res: any) => {
+router.post('/verify', async (req: any, res: any) => {
   try {
     const {
       razorpay_order_id,
@@ -77,9 +78,7 @@ export const verifyPayment = async (req: any, res: any) => {
     } = req.body;
 
     if (!registrationId) {
-      return res.status(400).json({
-        error: 'registrationId is required'
-      });
+      return res.status(400).json({ error: 'registrationId is required' });
     }
 
     if (!RZP_KEY_SECRET) {
@@ -100,15 +99,6 @@ export const verifyPayment = async (req: any, res: any) => {
     }
 
     const ref = db.collection('registrations').doc(registrationId);
-    const snap = await ref.get();
-
-    if (snap.exists && snap.data()?.paymentStatus === 'PAID') {
-      return res.status(200).json({
-        status: 'success',
-        message: 'Payment already verified'
-      });
-    }
-
     await ref.set(
       {
         paymentStatus: 'PAID',
@@ -128,4 +118,6 @@ export const verifyPayment = async (req: any, res: any) => {
       message: error.message
     });
   }
-};
+});
+
+export default router;
