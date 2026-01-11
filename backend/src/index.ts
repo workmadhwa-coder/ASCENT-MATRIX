@@ -1,58 +1,27 @@
-import dotenv from 'dotenv';
-dotenv.config();
+// 1. Force the PORT to be a number
+const PORT: number = Number(process.env.PORT) || 3000;
 
-import express from 'express';
-import cors from 'cors';
+// ... other middleware and routes ...
 
-// 🔥 Initialize Firebase
-import './config/firebase.js';
-
-// Routes
-import paymentRoutes from './routes/payment.routes.js';
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// ===============================
-// ✅ UPDATED CORS CONFIG
-// ===============================
-const allowedOrigins = [
-  'http://localhost:5173',
-  'https://ascent-matrix-ok7p.onrender.com' // Ensure this is your FRONTEND URL
-];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
-
-app.options('*', cors()); // Enable pre-flight for all routes
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Health Check & Logger
-app.use((req, _res, next) => {
-  console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
-  next();
-});
-
-app.use('/api/payment', paymentRoutes); // Simplified route mounting
-
-app.get('/', (_req, res) => {
-  res.json({ status: 'online', service: 'Ascent Matrix API' });
-});
-
+// 2. Update the listen function
 app.listen(PORT, '0.0.0.0', () => {
+  console.log('--------------------------------------------------');
   console.log(`🚀 API running on port ${PORT}`);
+  
+  // Safe check for the Firebase environment variable
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    try {
+      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      console.log(`🔥 Firebase Project: ${serviceAccount.project_id}`);
+    } catch (e) {
+      console.log('🔥 Firebase: Service account found but failed to parse.');
+    }
+  }
+
+  console.log(
+    `🔑 Razorpay Mode: ${
+      process.env.RAZORPAY_KEY_ID?.startsWith('rzp_test') ? 'Test' : 'Live'
+    }`
+  );
+  console.log('--------------------------------------------------');
 });
